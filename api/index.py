@@ -42,7 +42,3 @@ async def invoke_isabella_agent(request: ScrapeRequest):
     if enhanced_text.startswith("Error:"):
         return {"error": enhanced_text}
     return {"enhanced_content": enhanced_text}
-    print("--- Enhancement successful. Returning result. ---")
-    
-    # Return the final, beautifully written text
-    return {"enhanced_content": enhanced_text}
