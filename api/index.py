@@ -1,36 +1,47 @@
-# file: api/index.py (DEBUGGING VERSION)
+# file: api/index.py (FINAL VERSION)
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
+import os
+from tools import scrape_website_content, enhance_with_isabella_voice
 
 app = FastAPI()
 
+# --- Security Setup ---
+security_scheme = HTTPBearer()
+SECRET_TOKEN = os.getenv("BEARER_TOKEN") 
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security_scheme)):
+    if not SECRET_TOKEN or credentials.scheme != "Bearer" or credentials.credentials != SECRET_TOKEN:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing authentication token",
+        )
+
+# --- NEW: Add a 'Lobby' Endpoint ---
+# This is the front door that the Agent Builder will ping.
+@app.get("/")
+async def get_root():
+    """A simple endpoint to confirm the server is running."""
+    return {"status": "Isabella Agent is online and ready."}
+# --- END NEW ---
+
+
+# --- The Original, Real Tool Endpoint ---
 class ScrapeRequest(BaseModel):
     url: str
 
-@app.post("/api/invoke")
-async def invoke_isabella_agent(request: Request, body: ScrapeRequest):
-    """
-    This is a temporary endpoint to debug incoming requests.
-    It will log the headers and body it receives.
-    """
-    
-    # --- THIS IS THE DETECTIVE CODE ---
-    print("--- NEW INCOMING REQUEST ---")
-    print("Headers:")
-    # Print all the headers that the Agent Builder is sending
-    for name, value in request.headers.items():
-        print(f"  {name}: {value}")
-    
-    print("\nBody:")
-    # Print the body that the Agent Builder is sending
-    print(f"  {body.dict()}")
-    print("--------------------------")
-    # --- END DETECTIVE CODE ---
-
-    # We will just return a simple success message for now
-    return {"status": "Request received and logged successfully."}
-        
+@app.post("/api/invoke", dependencies=[Depends(verify_token)])
+async def invoke_isabella_agent(request: ScrapeRequest):
+    """The real endpoint that does the scraping and enhancing work."""
+    raw_text = scrape_website_content(request.url)
+    if raw_text.startswith("Error:"):
+        return {"error": raw_text}
+    enhanced_text = enhance_with_isabella_voice(raw_text)
+    if enhanced_text.startswith("Error:"):
+        return {"error": enhanced_text}
+    return {"enhanced_content": enhanced_text}
     print("--- Enhancement successful. Returning result. ---")
     
     # Return the final, beautifully written text
