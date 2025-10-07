@@ -1,34 +1,35 @@
-# file: api/index.py
+# file: api/index.py (DEBUGGING VERSION)
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
-# Import the two "superpower" functions we just created
-from tools import scrape_website_content, enhance_with_isabella_voice
 
 app = FastAPI()
 
-# Define the input format for our API. It just needs a URL.
 class ScrapeRequest(BaseModel):
     url: str
 
 @app.post("/api/invoke")
-async def invoke_isabella_agent(request: ScrapeRequest):
+async def invoke_isabella_agent(request: Request, body: ScrapeRequest):
     """
-    This endpoint receives a URL, scrapes it, enhances the content, and returns the result.
+    This is a temporary endpoint to debug incoming requests.
+    It will log the headers and body it receives.
     """
-    print(f"--- Received request to process URL: {request.url} ---")
     
-    # Step 1: Scrape the website
-    raw_text = scrape_website_content(request.url)
-    if raw_text.startswith("Error:"):
-        return {"error": raw_text}
+    # --- THIS IS THE DETECTIVE CODE ---
+    print("--- NEW INCOMING REQUEST ---")
+    print("Headers:")
+    # Print all the headers that the Agent Builder is sending
+    for name, value in request.headers.items():
+        print(f"  {name}: {value}")
+    
+    print("\nBody:")
+    # Print the body that the Agent Builder is sending
+    print(f"  {body.dict()}")
+    print("--------------------------")
+    # --- END DETECTIVE CODE ---
 
-    print("--- Scraping successful. Enhancing text... ---")
-
-    # Step 2: Enhance the scraped text
-    enhanced_text = enhance_with_isabella_voice(raw_text)
-    if enhanced_text.startswith("Error:"):
-        return {"error": enhanced_text}
+    # We will just return a simple success message for now
+    return {"status": "Request received and logged successfully."}
         
     print("--- Enhancement successful. Returning result. ---")
     
